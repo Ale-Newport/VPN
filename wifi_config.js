@@ -11,7 +11,7 @@ const expectedISP = 'Telefonica';
 const expectedCity = 'Las Palmas de Gran Canaria';
 
 // Información adicional detectada:
-// IP Local: 192.168.1.46
+// IP Local: 192.168.1.58
 // IP Pública: 2.137.220.106
 // ISP Completo: Telefonica De Espana S.a.u.
 // País: Spain

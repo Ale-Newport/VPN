@@ -200,11 +200,10 @@
     <script>
         // Configuración de la WiFi X autorizada (MÁS ESTRICTA)
         const AUTHORIZED_WIFI = {
-            // IMPORTANTE: Usa la IP PÚBLICA EXACTA, no un rango
-            expectedIP: '2.137.220.106',  // Cambia por tu IP PÚBLICA exacta (obtén con ipconfig/ifconfig)
-            expectedGateway: '192.168.1.1',  // Gateway de tu WiFi X
-            wifiName: 'WiFi-X',  // Nombre de tu WiFi
-            allowedMAC: null  // MAC address del router (opcional)
+            expectedIP: '192.168.1.',
+            expectedGateway: '192.168.1.1',
+            wifiName: 'WiFi-Desconocida',
+            allowedMAC: null  // Opcional: MAC del router
         };
 
         let isAuthorized = false;
