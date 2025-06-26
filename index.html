@@ -199,12 +199,12 @@
 
     <script>
         // Configuración de la WiFi X autorizada
+        // Configuración automática generada para tu WiFi
         const AUTHORIZED_WIFI = {
-            // Cambia estos valores por los de tu WiFi X real
-            expectedIP: '192.168.1.',  // Rango IP de tu WiFi X
-            expectedGateway: '192.168.1.1',  // Gateway de tu WiFi X
-            wifiName: 'WiFi-X',  // Nombre de tu WiFi
-            allowedMAC: null  // MAC address del router (opcional)
+            expectedIP: '192.168.1.',
+            expectedGateway: '192.168.1.1',
+            wifiName: 'WiFi-Desconocida',
+            allowedMAC: null  // Opcional: MAC del router
         };
 
         let isAuthorized = false;
@@ -286,7 +286,7 @@
             }
 
             // Check 3: Verificar ubicación geográfica
-            const expectedCity = 'Las Palmas';  // Cambia por tu ciudad
+            const expectedCity = 'Las Palmas de Gran Canaria';  // Cambia por tu ciudad
             if (connectionData.location && connectionData.location.city && 
                 connectionData.location.city.toLowerCase().includes(expectedCity.toLowerCase())) {
                 authScore += 20;

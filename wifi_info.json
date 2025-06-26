@@ -1,0 +1,27 @@
+{
+  "expectedIP": "192.168.1.",
+  "expectedGateway": "192.168.1.1",
+  "wifiName": "WiFi-Desconocida",
+  "expectedISP": "Telefonica",
+  "expectedCity": "Las Palmas de Gran Canaria",
+  "local_ip": "192.168.1.46",
+  "public_ip": "2.137.220.106",
+  "country": "Spain",
+  "full_isp": "Telefonica De Espana S.a.u.",
+  "coordinates": {
+    "lat": 28.0932,
+    "lng": -15.4574
+  },
+  "interfaces": {
+    "lo0": {
+      "ip": "127.0.0.1",
+      "netmask": "255.0.0.0",
+      "broadcast": null
+    },
+    "en0": {
+      "ip": "192.168.1.46",
+      "netmask": "255.255.255.0",
+      "broadcast": "192.168.1.255"
+    }
+  }
+}
