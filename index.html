@@ -198,13 +198,13 @@
     </div>
 
     <script>
-        // Configuración de la WiFi X autorizada
-        // Configuración automática generada para tu WiFi
+        // Configuración de la WiFi X autorizada (MÁS ESTRICTA)
         const AUTHORIZED_WIFI = {
-            expectedIP: '192.168.1.',
-            expectedGateway: '192.168.1.1',
-            wifiName: 'WiFi-Desconocida',
-            allowedMAC: null  // Opcional: MAC del router
+            // IMPORTANTE: Usa la IP PÚBLICA EXACTA, no un rango
+            expectedIP: '2.137.220.106',  // Cambia por tu IP PÚBLICA exacta (obtén con ipconfig/ifconfig)
+            expectedGateway: '192.168.1.1',  // Gateway de tu WiFi X
+            wifiName: 'WiFi-X',  // Nombre de tu WiFi
+            allowedMAC: null  // MAC address del router (opcional)
         };
 
         let isAuthorized = false;
@@ -262,77 +262,134 @@
             
             let authScore = 0;
             let checks = [];
+            let requiredChecks = 0;
+            let passedChecks = 0;
 
-            // Check 1: Verificar rango IP local (simulado)
-            if (connectionData.publicIP && connectionData.publicIP.startsWith(AUTHORIZED_WIFI.expectedIP)) {
-                authScore += 40;
-                checks.push('✅ Rango IP coincide');
-                addLog('✅ Rango IP autorizado detectado');
+            // Check 1: Verificar IP exacta (MÁS ESTRICTO)
+            requiredChecks++;
+            const expectedFullIP = AUTHORIZED_WIFI.expectedIP; // IP completa, no rango
+            addLog(`🔍 IP esperada: ${expectedFullIP}`);
+            addLog(`🔍 IP detectada: ${connectionData.publicIP}`);
+            
+            if (connectionData.publicIP === expectedFullIP) {
+                authScore += 50;
+                passedChecks++;
+                checks.push('✅ IP coincide exactamente');
+                addLog('✅ IP autorizada detectada');
             } else {
-                checks.push('❌ Rango IP no coincide');
-                addLog('⚠️ IP fuera del rango autorizado');
+                authScore -= 20; // Penalización
+                checks.push(`❌ IP no coincide (esperada: ${expectedFullIP}, detectada: ${connectionData.publicIP})`);
+                addLog(`❌ IP no autorizada: ${connectionData.publicIP} ≠ ${expectedFullIP}`);
             }
 
-            // Check 2: Verificar ISP/Proveedor
-            const expectedISP = 'Telefonica';  // Cambia por tu ISP
+            // Check 2: Verificar ISP EXACTO (MÁS ESTRICTO)
+            requiredChecks++;
+            const expectedISP = 'Telefonica';  // Cambia por tu ISP EXACTO
+            addLog(`🔍 ISP esperado: ${expectedISP}`);
+            addLog(`🔍 ISP detectado: ${connectionData.location?.org || 'Desconocido'}`);
+            
             if (connectionData.location && connectionData.location.org && 
                 connectionData.location.org.toLowerCase().includes(expectedISP.toLowerCase())) {
                 authScore += 30;
+                passedChecks++;
                 checks.push('✅ ISP autorizado');
                 addLog('✅ ISP autorizado detectado');
             } else {
-                checks.push('❌ ISP no reconocido');
-                addLog('⚠️ ISP no autorizado');
+                authScore -= 15; // Penalización
+                checks.push(`❌ ISP no autorizado (esperado: ${expectedISP}, detectado: ${connectionData.location?.org || 'Desconocido'})`);
+                addLog(`❌ ISP no autorizado: ${connectionData.location?.org || 'Desconocido'}`);
             }
 
-            // Check 3: Verificar ubicación geográfica
-            const expectedCity = 'Las Palmas de Gran Canaria';  // Cambia por tu ciudad
+            // Check 3: Verificar ubicación EXACTA (MÁS ESTRICTO)
+            requiredChecks++;
+            const expectedCity = 'Las Palmas de Gran Canaria';  // Cambia por tu ciudad EXACTA
+            addLog(`🔍 Ciudad esperada: ${expectedCity}`);
+            addLog(`🔍 Ciudad detectada: ${connectionData.location?.city || 'Desconocida'}`);
+            
             if (connectionData.location && connectionData.location.city && 
-                connectionData.location.city.toLowerCase().includes(expectedCity.toLowerCase())) {
-                authScore += 20;
+                connectionData.location.city.toLowerCase() === expectedCity.toLowerCase()) {
+                authScore += 25;
+                passedChecks++;
                 checks.push('✅ Ubicación autorizada');
                 addLog('✅ Ubicación geográfica autorizada');
             } else {
-                checks.push('❌ Ubicación no autorizada');
-                addLog('⚠️ Ubicación geográfica no autorizada');
+                authScore -= 10; // Penalización
+                checks.push(`❌ Ubicación no autorizada (esperada: ${expectedCity}, detectada: ${connectionData.location?.city || 'Desconocida'})`);
+                addLog(`❌ Ubicación no autorizada: ${connectionData.location?.city || 'Desconocida'}`);
             }
 
-            // Check 4: Test de latencia local (para detectar VPN)
+            // Check 4: Verificar latencia específica
             try {
                 const startTime = performance.now();
                 await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
                 const latency = performance.now() - startTime;
                 
-                if (latency < 100) {
-                    authScore += 10;
-                    checks.push('✅ Latencia normal');
-                    addLog(`✅ Latencia normal: ${latency.toFixed(2)}ms`);
+                addLog(`🔍 Latencia medida: ${latency.toFixed(2)}ms`);
+                
+                // Solo para conexiones MUY rápidas (conexión local directa)
+                if (latency < 50) {
+                    authScore += 15;
+                    checks.push(`✅ Latencia excelente: ${latency.toFixed(2)}ms`);
+                    addLog(`✅ Latencia excelente: ${latency.toFixed(2)}ms`);
                     document.getElementById('vpnStatus').textContent = 'Conexión directa';
+                } else if (latency < 100) {
+                    authScore += 5;
+                    checks.push(`⚠️ Latencia aceptable: ${latency.toFixed(2)}ms`);
+                    addLog(`⚠️ Latencia aceptable: ${latency.toFixed(2)}ms`);
+                    document.getElementById('vpnStatus').textContent = 'Conexión normal';
                 } else {
-                    checks.push('⚠️ Latencia alta (posible VPN)');
-                    addLog(`⚠️ Latencia alta: ${latency.toFixed(2)}ms (posible VPN)`);
+                    authScore -= 5;
+                    checks.push(`❌ Latencia alta: ${latency.toFixed(2)}ms (posible VPN)`);
+                    addLog(`❌ Latencia alta: ${latency.toFixed(2)}ms (posible VPN)`);
                     document.getElementById('vpnStatus').textContent = 'Posible VPN detectada';
                 }
             } catch (error) {
+                authScore -= 10;
                 checks.push('❌ No se pudo medir latencia');
                 addLog('❌ Error midiendo latencia');
             }
 
-            // Determinar si está autorizado
-            isAuthorized = authScore >= 60;  // Necesita al menos 60 puntos
+            // Check 5: Verificar hora de acceso (nuevo)
+            const currentHour = new Date().getHours();
+            if (currentHour >= 6 && currentHour <= 23) { // Horario razonable
+                authScore += 5;
+                checks.push('✅ Horario de acceso normal');
+            } else {
+                authScore -= 5;
+                checks.push('⚠️ Horario de acceso inusual');
+            }
+
+            // NUEVA LÓGICA MÁS ESTRICTA:
+            // Debe pasar TODOS los checks principales (IP + ISP + Ciudad)
+            const allMainChecksPassed = passedChecks === requiredChecks;
+            const minimumScore = authScore >= 80; // Puntuación mínima más alta
             
-            addLog(`📊 Puntuación de autorización: ${authScore}/100`);
+            addLog(`📊 Checks principales pasados: ${passedChecks}/${requiredChecks}`);
+            addLog(`📊 Puntuación de autorización: ${authScore}/120`);
+            
+            // Determinar si está autorizado (MÁS ESTRICTO)
+            isAuthorized = allMainChecksPassed && minimumScore;
+            
             checks.forEach(check => addLog(check));
 
             if (isAuthorized) {
                 document.getElementById('statusText').textContent = '🎉 ¡Acceso autorizado desde WiFi X!';
                 updateStatus('allowed');
-                addLog('🎉 ACCESO CONCEDIDO - Conectado desde WiFi X');
+                addLog('🎉 ACCESO CONCEDIDO - Conectado desde WiFi X autorizada');
+                addLog(`✅ Verificación exitosa: Todos los parámetros coinciden`);
                 showSecretContent();
             } else {
                 document.getElementById('statusText').textContent = '🚫 Acceso denegado - No estás en WiFi X';
                 updateStatus('denied');
-                addLog('🚫 ACCESO DENEGADO - No conectado desde WiFi X');
+                addLog('🚫 ACCESO DENEGADO - No conectado desde WiFi X autorizada');
+                addLog(`❌ Verificación fallida: Parámetros no coinciden`);
+                
+                // Mostrar razón específica del fallo
+                if (!allMainChecksPassed) {
+                    addLog(`❌ MOTIVO: Solo ${passedChecks}/${requiredChecks} verificaciones principales pasadas`);
+                } else if (!minimumScore) {
+                    addLog(`❌ MOTIVO: Puntuación insuficiente (${authScore}/120 mínimo 80)`);
+                }
             }
         }
 
