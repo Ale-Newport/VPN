@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector WiFi X - Test VPN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .status-indicator {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .status-allowed {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
+        }
+
+        .status-denied {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            box-shadow: 0 0 30px rgba(244, 67, 54, 0.6);
+        }
+
+        .status-checking {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            box-shadow: 0 0 30px rgba(255, 152, 0, 0.6);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-text {
+            font-size: 1.4em;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-card h3 {
+            color: #ffd54f;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-card p {
+            font-size: 1em;
+            word-break: break-all;
+        }
+
+        .test-button {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 188, 212, 0.4);
+        }
+
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #00bcd4;
+            padding-left: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="statusIndicator" class="status-indicator status-checking">
+            <div class="loading"></div>
+        </div>
+        
+        <h1>Detector WiFi X</h1>
+        <p id="statusText" class="status-text">Verificando conexión...</p>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Tu IP</h3>
+                <p id="userIP">Detectando...</p>
+            </div>
+            <div class="info-card">
+                <h3>Red Detectada</h3>
+                <p id="networkInfo">Analizando...</p>
+            </div>
+            <div class="info-card">
+                <h3>Ubicación</h3>
+                <p id="locationInfo">Localizando...</p>
+            </div>
+            <div class="info-card">
+                <h3>Estado VPN</h3>
+                <p id="vpnStatus">Verificando...</p>
+            </div>
+        </div>
+
+        <button class="test-button" onclick="runNetworkTest()">🔄 Probar Conexión</button>
+        <button class="test-button" onclick="testVPNSpeed()">⚡ Test Velocidad</button>
+        <button class="test-button" onclick="clearLogs()">🗑️ Limpiar Log</button>
+
+        <div class="log-container">
+            <h3 style="color: #ffd54f; margin-bottom: 15px;">📋 Log de Conexión</h3>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de la WiFi X autorizada
+        const AUTHORIZED_WIFI = {
+            // Cambia estos valores por los de tu WiFi X real
+            expectedIP: '192.168.1.',  // Rango IP de tu WiFi X
+            expectedGateway: '192.168.1.1',  // Gateway de tu WiFi X
+            wifiName: 'WiFi-X',  // Nombre de tu WiFi
+            allowedMAC: null  // MAC address del router (opcional)
+        };
+
+        let isAuthorized = false;
+        let connectionData = {};
+
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Función para detectar información de red
+        async function detectNetworkInfo() {
+            addLog('🔍 Iniciando detección de red...');
+            
+            try {
+                // Obtener IP pública
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                connectionData.publicIP = ipData.ip;
+                document.getElementById('userIP').textContent = ipData.ip;
+                addLog(`📍 IP pública detectada: ${ipData.ip}`);
+
+                // Obtener información de geolocalización
+                const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+                const geoData = await geoResponse.json();
+                connectionData.location = geoData;
+                
+                const locationText = `${geoData.city || 'Desconocida'}, ${geoData.country_name || 'Desconocido'}`;
+                document.getElementById('locationInfo').textContent = locationText;
+                addLog(`🌍 Ubicación: ${locationText}`);
+
+                // Detectar información de ISP
+                document.getElementById('networkInfo').textContent = geoData.org || 'Proveedor desconocido';
+                addLog(`🏢 ISP: ${geoData.org || 'Desconocido'}`);
+
+                // Verificar si está en la red autorizada
+                await checkAuthorization();
+
+            } catch (error) {
+                addLog(`❌ Error detectando red: ${error.message}`, 'error');
+                document.getElementById('statusText').textContent = 'Error de conexión';
+                updateStatus('denied');
+            }
+        }
+
+        // Función para verificar autorización
+        async function checkAuthorization() {
+            addLog('🔐 Verificando autorización...');
+            
+            let authScore = 0;
+            let checks = [];
+
+            // Check 1: Verificar rango IP local (simulado)
+            if (connectionData.publicIP && connectionData.publicIP.startsWith(AUTHORIZED_WIFI.expectedIP)) {
+                authScore += 40;
+                checks.push('✅ Rango IP coincide');
+                addLog('✅ Rango IP autorizado detectado');
+            } else {
+                checks.push('❌ Rango IP no coincide');
+                addLog('⚠️ IP fuera del rango autorizado');
+            }
+
+            // Check 2: Verificar ISP/Proveedor
+            const expectedISP = 'Telefonica';  // Cambia por tu ISP
+            if (connectionData.location && connectionData.location.org && 
+                connectionData.location.org.toLowerCase().includes(expectedISP.toLowerCase())) {
+                authScore += 30;
+                checks.push('✅ ISP autorizado');
+                addLog('✅ ISP autorizado detectado');
+            } else {
+                checks.push('❌ ISP no reconocido');
+                addLog('⚠️ ISP no autorizado');
+            }
+
+            // Check 3: Verificar ubicación geográfica
+            const expectedCity = 'Las Palmas';  // Cambia por tu ciudad
+            if (connectionData.location && connectionData.location.city && 
+                connectionData.location.city.toLowerCase().includes(expectedCity.toLowerCase())) {
+                authScore += 20;
+                checks.push('✅ Ubicación autorizada');
+                addLog('✅ Ubicación geográfica autorizada');
+            } else {
+                checks.push('❌ Ubicación no autorizada');
+                addLog('⚠️ Ubicación geográfica no autorizada');
+            }
+
+            // Check 4: Test de latencia local (para detectar VPN)
+            try {
+                const startTime = performance.now();
+                await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
+                const latency = performance.now() - startTime;
+                
+                if (latency < 100) {
+                    authScore += 10;
+                    checks.push('✅ Latencia normal');
+                    addLog(`✅ Latencia normal: ${latency.toFixed(2)}ms`);
+                    document.getElementById('vpnStatus').textContent = 'Conexión directa';
+                } else {
+                    checks.push('⚠️ Latencia alta (posible VPN)');
+                    addLog(`⚠️ Latencia alta: ${latency.toFixed(2)}ms (posible VPN)`);
+                    document.getElementById('vpnStatus').textContent = 'Posible VPN detectada';
+                }
+            } catch (error) {
+                checks.push('❌ No se pudo medir latencia');
+                addLog('❌ Error midiendo latencia');
+            }
+
+            // Determinar si está autorizado
+            isAuthorized = authScore >= 60;  // Necesita al menos 60 puntos
+            
+            addLog(`📊 Puntuación de autorización: ${authScore}/100`);
+            checks.forEach(check => addLog(check));
+
+            if (isAuthorized) {
+                document.getElementById('statusText').textContent = '🎉 ¡Acceso autorizado desde WiFi X!';
+                updateStatus('allowed');
+                addLog('🎉 ACCESO CONCEDIDO - Conectado desde WiFi X');
+                showSecretContent();
+            } else {
+                document.getElementById('statusText').textContent = '🚫 Acceso denegado - No estás en WiFi X';
+                updateStatus('denied');
+                addLog('🚫 ACCESO DENEGADO - No conectado desde WiFi X');
+            }
+        }
+
+        // Función para actualizar el estado visual
+        function updateStatus(status) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = `status-indicator status-${status}`;
+            
+            if (status === 'allowed') {
+                indicator.innerHTML = '✅';
+            } else if (status === 'denied') {
+                indicator.innerHTML = '❌';
+            } else {
+                indicator.innerHTML = '<div class="loading"></div>';
+            }
+        }
+
+        // Función para mostrar contenido secreto
+        function showSecretContent() {
+            const container = document.querySelector('.container');
+            const secretDiv = document.createElement('div');
+            secretDiv.innerHTML = `
+                <div style="background: rgba(76, 175, 80, 0.2); padding: 20px; border-radius: 15px; margin-top: 20px; border: 2px solid #4CAF50;">
+                    <h2 style="color: #4CAF50; margin-bottom: 15px;">🔓 ¡Contenido Exclusivo de WiFi X!</h2>
+                    <p style="font-size: 1.2em; margin-bottom: 15px;">¡Felicidades! Has accedido desde la red WiFi X autorizada.</p>
+                    <p>🎯 Tu VPN está funcionando correctamente si ves este mensaje desde otro dispositivo.</p>
+                    <p>📡 Conexión verificada el: ${new Date().toLocaleString()}</p>
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px;">
+                        <strong>🔑 Código secreto:</strong> VPN-WIFI-X-${Math.random().toString(36).substr(2, 9).toUpperCase()}
+                    </div>
+                </div>
+            `;
+            container.appendChild(secretDiv);
+        }
+
+        // Función para probar la conexión
+        async function runNetworkTest() {
+            addLog('🔄 Ejecutando test de conexión...');
+            document.getElementById('statusText').textContent = 'Probando conexión...';
+            updateStatus('checking');
+            
+            // Simular delay y volver a verificar
+            setTimeout(() => {
+                detectNetworkInfo();
+            }, 1000);
+        }
+
+        // Función para test de velocidad
+        async function testVPNSpeed() {
+            addLog('⚡ Iniciando test de velocidad...');
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch('https://httpbin.org/bytes/1000000', { method: 'GET' });
+                const endTime = performance.now();
+                
+                const duration = (endTime - startTime) / 1000; // segundos
+                const sizeKB = 1000; // 1MB = 1000KB
+                const speedKbps = (sizeKB / duration).toFixed(2);
+                
+                addLog(`⚡ Velocidad de descarga: ${speedKbps} KB/s`);
+                addLog(`⏱️ Tiempo de respuesta: ${duration.toFixed(2)}s`);
+                
+            } catch (error) {
+                addLog(`❌ Error en test de velocidad: ${error.message}`);
+            }
+        }
+
+        // Función para limpiar logs
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            addLog('🗑️ Log limpiado');
+        }
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', () => {
+            addLog('🚀 Página cargada - Iniciando verificación');
+            setTimeout(detectNetworkInfo, 1000);
+        });
+
+        // Actualizar cada 30 segundos
+        setInterval(() => {
+            addLog('🔄 Verificación automática...');
+            detectNetworkInfo();
+        }, 30000);
+    </script>
+</body>
+</html>
